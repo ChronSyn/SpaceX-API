@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+/**
+ * This script gathers tesla roadster orbital data from JPL Horizons,
+ * parses the output with various regular expressions, and updates
+ * the data accordingly.
+ */
+
 const MongoClient = require('mongodb');
 const request = require('request-promise-native');
 const moment = require('moment');
@@ -7,6 +13,7 @@ const shell = require('shelljs');
 
 shell.config.silent = true;
 
+// Using date range so Horizons doesn't give us the default 10 day data
 const today = moment().format('YYYY-MMM-DD HH:mm:ss');
 const tomorrow = moment().add(1, 'day').format('YYYY-MMM-DD HH:mm:ss');
 
@@ -90,7 +97,7 @@ const getData = async (orbit, earth, mars) => {
     // Reading Epoch - valid for CE dates.
     const epochReg = /^[ ]*([0-9.]+)[ ]*=[ ]*A[.]D[.][ ]*/m;
     epochReg.exec(orbitSoe);
-    const epoch = RegExp.$1;
+    const epoch = parseFloat(RegExp.$1);
 
     // Reading Semi-major axis (A)
     const smaReg = /A=[ ]*([0-9.E+-]+)/m;
@@ -181,8 +188,7 @@ const getData = async (orbit, earth, mars) => {
   let client;
   try {
     client = await MongoClient.connect(process.env.MONGO_URL, { useNewUrlParser: true });
-    const db = client.db('spacex-api');
-    const col = db.collection('info');
+    const col = client.db('spacex-api').collection('info');
     const data = await getData(orbitURL, earthDistURL, marsDistURL);
     console.log(data);
 
